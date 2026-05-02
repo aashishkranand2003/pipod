@@ -7,7 +7,7 @@ This project uses `calibrate.py` for touch calibration and `rpi.py` as the main 
 - `rpi.py` - main app
 - `calibrate.py` - touch calibration tool
 - `start.sh` - simple launcher for manual testing
-- `rec-app.service` - systemd service for boot startup
+- `app.service` - systemd service for boot startup
 - `requirements.txt` - Python dependencies
 
 ## Fresh Raspberry Pi Setup
@@ -99,35 +99,4 @@ sudo systemctl start app.service
 
 ```sh
 sudo journalctl -u app.service -f
-```
-
-## Publish to GitHub
-
-Use your GitHub account `aashishkranand2003` and push to a repository you create under that account.
-
-Example:
-
-```sh
-git init
-git add .
-git commit -m "Initial Raspberry Pi Zero 2W music player"
-git branch -M main
-git remote add origin https://github.com/aashishkranand2003/<your-repo-name>.git
-git push -u origin main
-```
-
-## Recommended path
-
-For easier systemd setup, move the project to a path without spaces, such as:
-
-```sh
-/home/pi
-```
-
-## Manual start
-
-If you want to test it manually:
-
-```sh
-./start.sh
 ```
