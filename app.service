@@ -8,7 +8,6 @@ User=pi
 WorkingDirectory=/home/pi
 Environment=PATH=/home/pi/music/.venv/bin
 ExecStart=/home/pi/music/.venv/bin/python /home/pi/pipod/rpi.py
-Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
