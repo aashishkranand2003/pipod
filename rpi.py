@@ -73,7 +73,7 @@ print(f"USB audio card: {ALSA_CARD}  ({ALSA_DEV})")
 _vlc_args = (
     "--no-video",
     "--quiet",
-    "--no-ts-trust-pcr"
+    "--no-ts-trust-pcr",
     # ── Force USB audio output — no fallback to PulseAudio / HDMI ─
     "--aout=alsa",                      # use ALSA, never PulseAudio
     f"--alsa-audio-device={ALSA_DEV}",  # pin to the USB DAC device
