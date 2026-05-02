@@ -1,98 +1,131 @@
-# Raspberry Pi Zero 2W Setup
+# PiPod
 
-This project uses `calibrate.py` for touch calibration and `rpi.py` as the main app. After calibration, `rpi.py` should start automatically on boot.
+PiPod is a touchscreen YouTube Music player for a Raspberry Pi Zero 2W with a 3.5-inch SPI display.
 
-## Files
+## Project Files
 
-- `rpi.py` - main app
-- `calibrate.py` - touch calibration tool
-- `start.sh` - simple launcher for manual testing
-- `app.service` - systemd service for boot startup
+- `rpi.py` - main application
+- `calibrate.py` - touchscreen calibration tool
+- `start.sh` - manual launcher
+- `app.service` - systemd service example
 - `requirements.txt` - Python dependencies
 
-## Fresh Raspberry Pi Setup
+## Requirements
 
-1. Flash Raspberry Pi OS Lite 64-bit to the SD card using Raspberry Pi Imager.
-2. In Imager, enable SSH and set Wi-Fi, username, and password.
-3. Boot the Pi Zero 2W and update it:
+- Raspberry Pi OS with SPI enabled
+- A 3.5-inch SPI framebuffer display on `/dev/fb1`
+- A supported touchscreen device exposed through `evdev`
+- Python 3, `venv`, `pip`
+- System packages: `git`, `vlc`, `libvlc-bin`, `alsa-utils`
 
-```sh
-sudo apt update
-sudo apt full-upgrade -y
-sudo reboot
-```
+If you are using the LCDWiki display driver, install and configure it first, then rotate the panel if needed.
 
-4. Enable SPI for the 3.5" display:
+## Installation
 
-```sh
-sudo raspi-config
-```
+1. Update the Pi and enable SPI.
 
-Go to Interface Options, then enable SPI and reboot.
+	```bash
+	sudo apt update
+	sudo apt full-upgrade -y
+	sudo reboot
+	```
 
-## 3.5-inch LCDWiki display setup
+	Then run `sudo raspi-config`, open `Interface Options`, enable `SPI`, finish, and reboot.
 
+2. Install the system packages.
 
-### 1) Install the driver
+	```bash
+	sudo apt install -y git python3 python3-venv python3-pip vlc libvlc-bin alsa-utils
+	```
 
-The LCDWiki instructions use the GoodTFT driver package:
+3. Clone this repository onto the Pi.
 
-```sh
-sudo apt install -y git python3 python3-venv python3-pip vlc libvlc-bin build-essential alsa-utils
-cd /home/pi
-sudo rm -rf LCD-show
-git clone https://github.com/goodtft/LCD-show.git
-git clone https://github.com/aashishkranand2003/pipod
-chmod -R 755 LCD-show
-cd LCD-show
-sudo ./LCD35-show
-```
+	```bash
+	cd /home/pi
+	git clone https://github.com/aashishkranand2003/pipod.git
+	cd pipod
+	```
 
-Wait for the Pi to reboot. After that, the screen should come up on the 3.5" display.
+4. Create and activate a virtual environment in the project root.
 
-### 2) Rotate the screen
+	```bash
+	python3 -m venv .venv
+	source .venv/bin/activate
+	pip install --upgrade pip
+	pip install -r requirements.txt
+	```
 
-```sh
-cd LCD-show
-sudo ./rotate.sh 90
-```
+5. Make the launcher executable.
 
-### 3) Calibrate touch
+	```bash
+	chmod +x start.sh
+	```
 
-After the display is working, run the touch calibration tool once:
+## Touch Calibration
 
-```sh
-mkdir music
-python3 -m venv .venv
+Run the calibration tool once after the display and touchscreen are working.
+
+```bash
 source .venv/bin/activate
-pip install --upgrade pip
-mv pipod/{app.service,calibrate.py,rpi.py,requirements.txt,start.sh} ~/
-pip install -r requirements.txt
 python3 calibrate.py
 ```
 
-This writes `~/touch_cal.json`. The app reads that file automatically, so you only need to rerun calibration if the display is rotated or touch drifts.
+The calibration is saved to `~/touch_cal.json` and is loaded automatically by `rpi.py` on startup.
 
+## Manual Run
 
-## Start `rpi.py` on boot
-
-1. Make the launcher executable:
-
-```sh
-chmod +x start.sh
+```bash
+cd /home/pi/pipod
+source .venv/bin/activate
+./start.sh
 ```
 
-2. Install the systemd service:
+## Autostart With systemd
 
-```sh
+The included `app.service` is a template. Its absolute paths must match your install location before you enable it.
+
+Edit `app.service` so that these paths point at your real project directory and virtual environment:
+
+- `WorkingDirectory`
+- `Environment=PATH`
+- `ExecStart`
+
+Then install and enable the service.
+
+```bash
 sudo cp app.service /etc/systemd/system/app.service
 sudo systemctl daemon-reload
 sudo systemctl enable app.service
 sudo systemctl start app.service
 ```
 
-3. Check the service if needed:
+Check status and logs with:
 
-```sh
+```bash
+sudo systemctl status app.service
 sudo journalctl -u app.service -f
 ```
+
+## Troubleshooting
+
+Restart the service:
+
+```bash
+sudo systemctl restart app.service
+```
+
+If VLC bindings are missing or `vlc.Instance()` fails, reinstall `python-vlc` inside the virtual environment:
+
+```bash
+source .venv/bin/activate
+pip uninstall -y python-vlc
+pip install python-vlc
+```
+
+If touch input does not line up with the display, rerun `calibrate.py` and confirm the saved bounds in `~/touch_cal.json`.
+
+## Notes
+
+- The app uses the framebuffer directly and does not require X11 or Wayland.
+- Touch calibration is loaded from `~/touch_cal.json`, with `~/touch_conf.json` taking priority if present.
+- Double-tap the album art to toggle the screen on and off.

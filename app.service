@@ -1,13 +1,13 @@
 [Unit]
-Description=rec app (boots rpi.py)
-After=network.target
+Description=PiPod Music Player (rpi.py)
+After=network.target sound.target
 
 [Service]
 Type=simple
 User=pi
 WorkingDirectory=/home/pi
-Environment=PATH=/home/pi/music/.venv/bin
-ExecStart=/home/pi/music/.venv/bin/python /home/pi/pipod/rpi.py
+Environment=PATH=/home/pi/.venv/bin:/usr/bin:/usr/local/bin
+ExecStart=/home/pi/.venv/bin/python /home/pi/rpi.py
 
 [Install]
 WantedBy=multi-user.target
