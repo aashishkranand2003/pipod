@@ -40,9 +40,9 @@ The LCDWiki instructions use the GoodTFT driver package:
 ```sh
 sudo apt install -y git python3 python3-venv python3-pip build-essential
 cd /home/pi
-git clone <YOUR_GITHUB_REPO_URL>
 sudo rm -rf LCD-show
 git clone https://github.com/goodtft/LCD-show.git
+git clone https://github.com/aashishkranand2003/pipod
 chmod -R 755 LCD-show
 cd LCD-show
 sudo ./LCD35-show
