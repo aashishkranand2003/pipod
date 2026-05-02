@@ -1,0 +1,7 @@
+numpy
+pygame
+requests
+evdev
+ytmusicapi
+yt-dlp
+python-vlc

@@ -1,0 +1,14 @@
+[Unit]
+Description=rec app (boots rpi.py)
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi
+Environment=PATH=/home/pi/music/.venv/bin
+ExecStart=/home/pi/music/.venv/bin/python /home/pi/rpi.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
