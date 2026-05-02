@@ -89,7 +89,7 @@ chmod +x start.sh
 2. Install the systemd service:
 
 ```sh
-sudo cp rec-app.service /etc/systemd/system/app.service
+sudo cp app.service /etc/systemd/system/app.service
 sudo systemctl daemon-reload
 sudo systemctl enable app.service
 sudo systemctl start app.service
