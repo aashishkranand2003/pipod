@@ -38,7 +38,7 @@ Go to Interface Options, then enable SPI and reboot.
 The LCDWiki instructions use the GoodTFT driver package:
 
 ```sh
-sudo apt install -y git python3 python3-venv python3-pip build-essential
+sudo apt install -y git python3 python3-venv python3-pip vlc libvlc-bin build-essential
 cd /home/pi
 sudo rm -rf LCD-show
 git clone https://github.com/goodtft/LCD-show.git
