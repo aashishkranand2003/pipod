@@ -67,10 +67,10 @@ After the display is working, run the touch calibration tool once:
 
 ```sh
 mkdir music
-cd music
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
+mv pipod/{app.service,calibrate.py,rpi.py,requirements.txt,start.sh} ~/
 pip install -r requirements.txt
 python3 calibrate.py
 ```
