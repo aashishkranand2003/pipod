@@ -50,16 +50,12 @@ sudo ./LCD35-show
 
 Wait for the Pi to reboot. After that, the screen should come up on the 3.5" display.
 
-### 2) Rotate the screen if needed
-
-If the image or touch orientation is wrong, LCDWiki says to use the rotate script after the driver is installed:
+### 2) Rotate the screen
 
 ```sh
 cd LCD-show
 sudo ./rotate.sh 90
 ```
-
-You can change `90` to `0`, `90`, `180`, or `270` depending on the way the screen is mounted.
 
 ### 3) Calibrate touch
 
