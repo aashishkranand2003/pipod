@@ -48,24 +48,9 @@ FETCH_COOLDOWN = 7.0           # seconds between auto-fetch calls
 FPS            = 30
 
 # ══════════════════════════════════════════════════════════════
-# USB AUDIO — find the correct ALSA card index at startup
+# AUDIO OUTPUT — Use system default (PulseAudio / ALSA default)
 # ══════════════════════════════════════════════════════════════
-def _find_usb_audio_card() -> int:
-    """Return the ALSA card index for the first USB audio device, else 1."""
-    try:
-        out = subprocess.check_output(["aplay", "-l"], text=True, stderr=subprocess.DEVNULL)
-        for line in out.splitlines():
-            if "usb" in line.lower() and line.startswith("card"):
-                return int(line.split()[1].rstrip(":"))
-    except Exception:
-        pass
-    return 1  # safe default for most USB DACs on Pi
-
-ALSA_CARD = _find_usb_audio_card()
-# Use plughw (not hw) — plughw applies automatic format/rate conversion which
-# prevents ALSA xruns and sample-rate mismatch distortion on USB DACs.
-ALSA_DEV  = f"plughw:{ALSA_CARD}"
-print(f"USB audio card: {ALSA_CARD}  ({ALSA_DEV})")
+print("Using system default audio output")
 
 # ══════════════════════════════════════════════════════════════
 # VLC — force output to the USB audio device
@@ -76,7 +61,6 @@ _vlc_args = (
     "--no-ts-trust-pcr",
     # ── Force USB audio output — no fallback to PulseAudio / HDMI ─
     "--aout=alsa",                      # use ALSA, never PulseAudio
-    f"--alsa-audio-device={ALSA_DEV}",  # pin to the USB DAC device
     "--no-sout-keep",                    # don't re-use output across streams
     # ── Audio quality improvements ────────────────────────────
     "--network-caching=3000",       # 3 s network buffer — prevents stutter/glitches
@@ -527,8 +511,7 @@ def set_usb_volume(percent: int) -> None:
     for ctrl in _VOLUME_CONTROLS:
         try:
             subprocess.run(
-                ["amixer", "-c", str(ALSA_CARD), "-M", "-q",
-                 "sset", ctrl, f"{current_volume}%"],
+                ["amixer",  "-M", "-q","sset", ctrl, f"{current_volume}%"],
                 check=True,
                 stderr=subprocess.DEVNULL,
             )
