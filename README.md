@@ -1,6 +1,6 @@
 # PiPod
 
-PiPod is a touchscreen YouTube Music player for a Raspberry Pi Zero 2W with a 3.5-inch SPI display.
+PiPod is a touchscreen YouTube Music player(with bluetooth audio support) for a Raspberry Pi Zero 2W with a 3.5-inch SPI display.
 
 ## Project Files
 
@@ -20,112 +20,216 @@ PiPod is a touchscreen YouTube Music player for a Raspberry Pi Zero 2W with a 3.
 
 If you are using the LCDWiki display driver, install and configure it first, then rotate the panel if needed.
 
-## Installation
+## What you need
 
-1. Update the Pi and enable SPI.
+- Raspberry Pi Zero 2W
+- Raspberry Pi OS Lite 64-bit
+- 3.5-inch SPI TFT display that exposes `/dev/fb1`
+- Touch controller supported by `evdev`
+- USB DAC or Bluetooth audio output
+- NetworkManager for Wi-Fi control (`nmcli`)
+- BlueZ for Bluetooth control (`bluetoothctl`)
 
-	```bash
-	sudo apt update
-	sudo apt full-upgrade -y
-	sudo reboot
-	```
+## 1. Prepare Raspberry Pi OS
 
-	Then run `sudo raspi-config`, open `Interface Options`, enable `SPI`, finish, and reboot.
-
-2. Install the system packages.
-
-	```bash
-	sudo apt install -y git python3 python3-venv python3-pip vlc libvlc-bin alsa-utils
-	```
-
-3. Clone this repository onto the Pi.
-
-	```bash
-	cd /home/pi
-	git clone https://github.com/aashishkranand2003/pipod.git
-	cd pipod
-	```
-
-4. Create and activate a virtual environment in the project root.
-
-	```bash
-	python3 -m venv .venv
-	source .venv/bin/activate
-	pip install --upgrade pip
-	pip install -r requirements.txt
-	```
-
-5. Make the launcher executable.
-
-	```bash
-	chmod +x start.sh
-	```
-
-## Touch Calibration
-
-Run the calibration tool once after the display and touchscreen are working.
+Install Raspberry Pi OS Lite 64-bit, boot once, then update the system:
 
 ```bash
-source .venv/bin/activate
-python3 calibrate.py
+sudo apt update
+sudo apt full-upgrade -y
+sudo reboot
 ```
 
-The calibration is saved to `~/touch_cal.json` and is loaded automatically by `rpi.py` on startup.
-
-## Manual Run
+Open raspi-config and enable SPI:
 
 ```bash
-cd /home/pi/pipod
-source .venv/bin/activate
-./start.sh
+sudo raspi-config
 ```
 
-## Autostart With systemd
+Recommended settings:
 
-The included `app.service` is a template. Its absolute paths must match your install location before you enable it.
+- Boot to console or console autologin
+- Enable SPI
+- Keep GPU memory low unless your display overlay needs more
 
-Edit `app.service` so that these paths point at your real project directory and virtual environment:
+## 2. Enable the SPI display
 
-- `WorkingDirectory`
-- `Environment=PATH`
-- `ExecStart`
-
-Then install and enable the service.
+Edit the firmware config:
 
 ```bash
-sudo cp app.service /etc/systemd/system/app.service
-sudo systemctl daemon-reload
-sudo systemctl enable app.service
-sudo systemctl start app.service
+sudo nano /boot/firmware/config.txt
 ```
 
-Check status and logs with:
+Make sure SPI is enabled and add the overlay for your display. The exact overlay depends on your panel, but the important part is that the panel appears as `/dev/fb1`.
+
+Example:
+
+```ini
+dtparam=spi=on
+# Use the overlay that matches your panel
+dtoverlay=piscreen,speed=20000000
+```
+
+Reboot and verify:
 
 ```bash
-sudo systemctl status app.service
-sudo journalctl -u app.service -f
+ls /dev/fb*
 ```
+
+You should see `/dev/fb1` for the SPI display.
+
+## 3. Install dependencies
+
+Install the system packages first:
+
+```bash
+sudo apt install -y \
+  python3 python3-pip \
+  python3-pygame python3-numpy python3-requests python3-evdev python3-vlc \
+  vlc libvlc-dev \
+  network-manager \
+  bluez bluetooth \
+  pulseaudio pulseaudio-utils pulseaudio-module-bluetooth \
+  git
+```
+
+Then install the Python packages used by the script:
+
+```bash
+python3 -m pip install --break-system-packages \
+  ytmusicapi yt-dlp
+```
+
+If your image already has `python3-vlc`, `python3-pygame`, and `python3-evdev`, keep using the distro packages. That is usually the easiest path on the Pi Zero 2W.
+
+## 4. Configure audio
+
+The script uses PulseAudio commands through `pactl` and will route output to the best available sink. For that to work cleanly:
+
+```bash
+sudo usermod -aG audio,bluetooth,video $USER
+```
+
+If PulseAudio is not already active for your user, log out and back in once after installing it.
+
+Useful checks:
+
+```bash
+pactl list short sinks
+bluetoothctl list
+nmcli device
+```
+
+## 5. Install the script
+
+Copy the script somewhere convenient, for example:
+
+```bash
+mkdir -p ~/music-player
+cp rpi.py ~/music-player/
+cd ~/music-player
+```
+
+You can keep the filename as `rpi.py` or rename it if you prefer. The script does not depend on a special working directory.
+
+## 6. Touch calibration
+
+On startup the script looks for:
+
+1. `~/touch_conf.json`
+2. `~/touch_cal.json`
+
+Use `touch_conf.json` for a manual override, or `touch_cal.json` for the normal calibration output.
+
+Example file:
+
+```json
+{
+  "TOUCH_X_MIN": 213,
+  "TOUCH_X_MAX": 3884,
+  "TOUCH_Y_MIN": 733,
+  "TOUCH_Y_MAX": 3826
+}
+```
+
+If touch coordinates feel wrong, temporarily set `TAP_DEBUG = True` in the script and use the red dots to tune the values.
+
+## 7. Run it
+
+From the folder containing the script:
+
+```bash
+python3 rpi.py
+```
+
+The UI will open directly on the framebuffer. No desktop session is required.
+
+## 8. Optional boot start
+
+If you want it to launch automatically, use a user service after you have confirmed manual startup works.
+
+Create this file:
+
+```bash
+mkdir -p ~/.config/systemd/user
+nano ~/.config/systemd/user/music-player.service
+```
+
+Example service:
+
+```ini
+[Unit]
+Description=Pi Zero 2W Music Player
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/pi/music-player/rpi.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+```
+
+Enable it:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable music-player.service
+systemctl --user start music-player.service
+```
+
+If you use a different username, change `/home/pi/music-player/rpi.py` to your actual home path.
+
+## How it works
+
+- Tap the search bar to open the on-screen keyboard and search YouTube Music.
+- Use the Bluetooth button to scan, pair, and connect devices.
+- Use the Wi-Fi button to scan and connect through NetworkManager.
+- Double-tap the thumbnail to sleep the display and double-tap again to wake it.
+- The player prefetches the next tracks to keep playback smooth.
 
 ## Troubleshooting
 
-Restart the service:
+If the display stays blank, confirm that `/dev/fb1` exists and that your overlay matches the panel.
+
+If touch does not respond correctly, verify the device with `evtest` and add calibration values to `~/touch_cal.json`.
+
+If audio does not switch, check `pactl list short sinks` and make sure the USB DAC or Bluetooth sink is visible.
+
+If Wi-Fi controls fail, confirm that `nmcli` works and that NetworkManager is installed and running.
+
+If Bluetooth pairing fails, make sure `bluetoothctl` works and that BlueZ is installed.
+
+For YouTube stream issues, update `yt-dlp`:
 
 ```bash
-sudo systemctl restart app.service
+python3 -m pip install --upgrade yt-dlp
 ```
-
-If VLC bindings are missing or `vlc.Instance()` fails, reinstall `python-vlc` inside the virtual environment:
-
-```bash
-source .venv/bin/activate
-pip uninstall -y python-vlc
-pip install python-vlc
-```
-
-If touch input does not line up with the display, rerun `calibrate.py` and confirm the saved bounds in `~/touch_cal.json`.
 
 ## Notes
 
-- The app uses the framebuffer directly and does not require X11 or Wayland.
-- Touch calibration is loaded from `~/touch_cal.json`, with `~/touch_conf.json` taking priority if present.
-- Double-tap the album art to toggle the screen on and off.
+- The app is designed for Raspberry Pi Zero 2W performance levels.
+- The render loop is capped at 30 FPS.
+- The script is written to run without X11 or Wayland.
