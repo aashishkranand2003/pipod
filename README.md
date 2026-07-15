@@ -66,17 +66,8 @@ Example:
 
 ```ini
 dtparam=spi=on
-# Use the overlay that matches your panel
 dtoverlay=piscreen,speed=20000000
 ```
-
-Reboot and verify:
-
-```bash
-ls /dev/fb*
-```
-
-You should see `/dev/fb1` for the SPI display.
 
 ## 3. Install dependencies
 
@@ -233,3 +224,7 @@ python3 -m pip install --upgrade yt-dlp
 - The app is designed for Raspberry Pi Zero 2W performance levels.
 - The render loop is capped at 30 FPS.
 - The script is written to run without X11 or Wayland.
+
+## Improvements left
+
+- Onboard Wifi connection, problem in connecting with other wifi connections through onscreen user interface.
